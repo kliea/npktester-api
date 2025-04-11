@@ -56,26 +56,27 @@ def predict():
     data = request.get_json()
     features = data.get('features')
 
-    print(f"Received features: {features}")
-    
-    # Ensure that the input has exactly 3 features (NPK)
     if not features or not isinstance(features, list) or len(features) != 3:
         return jsonify({'error': 'Invalid input. Must be a list of 3 NPK values.'}), 400
-    
-    prediction = model.predict([features])
-    
+
+    prediction = model.predict([features])[0]  # prediction[0] directly
+    response = {'prediction': prediction}
+
     if prediction == 'maize':
-        # Calculate the required nutrients for maize
-        n_req=197-int(features[0])
-        p_req=70-int(features[1])
-        k_req=180-int(features[2])
+        response['needed_nutrients'] = {
+            'N': 197 - int(features[0]),
+            'P': 70 - int(features[1]),
+            'K': 180 - int(features[2])
+        }
     elif prediction == 'rice':
-        # Calculate the required nutrients for rice
-        n_req=175-int(features[0])
-        p_req=87-int(features[1])
-        k_req=178-int(features[2])
-    
-    return jsonify({'prediction': prediction[0]}, {'needed_nutrients': {'N': n_req, 'P': p_req, 'K': k_req}})
+        response['needed_nutrients'] = {
+            'N': 175 - int(features[0]),
+            'P': 87 - int(features[1]),
+            'K': 178 - int(features[2])
+        }
+
+    return jsonify(response)
+
 
 
 if __name__ == '__main__':
