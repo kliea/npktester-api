@@ -3,4 +3,3 @@ joblib
 flask-cors
 python-dotenv
 supabase
-scikit-learn
