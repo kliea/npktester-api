@@ -1,0 +1,7 @@
+{
+	"builds": [{ "src": "app.py", "use": "@vercel/python" }],
+	"routes": [
+		{ "src": "/predict", "methods": ["POST"], "dest": "app.py" },
+		{ "src": "/sensordata", "methods": ["GET"], "dest": "app.py" }
+	]
+}
