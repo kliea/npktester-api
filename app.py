@@ -45,7 +45,7 @@ def index():
 def get_sensor_data():
     # Fetch the sensor data from PostgreSQL
     response = supabase.table('sensor_data') \
-        .select('id, nitrogen, phosphorus, potassium, created_at') \
+        .select('id, nitrogen, phosphorus, potassium, soilMoisture, created_at') \
         .order('created_at', desc=True) \
         .limit(1) \
         .execute()
@@ -63,20 +63,186 @@ def predict():
     response = {'prediction': prediction}
 
     if prediction == 'maize':
+        nit = 197 - int(features[0])
+        phos= 70 - int(features[1])
+        pot = 180 - int(features[2])
+        
+        if nit > 10:
+            nit = 7.8
+        elif nit > 20:
+            nit = 15.6
+        elif nit > 30:
+            nit = 23.4
+        elif nit > 40:
+            nit = 31.2
+        elif nit > 50:
+            nit = 39
+        elif nit > 60:
+            nit = 46.8
+        elif nit > 70:
+            nit = 54.6
+        elif nit > 80:
+            nit = 62.4
+        elif nit > 90:
+            nit = 70.2
+        elif nit > 100:
+            nit = 78
+            
+        if phos > 10:
+            phos = 18
+        elif phos > 20:
+            phos = 36
+        elif phos > 30:
+            phos = 54
+        elif phos > 40:
+            phos = 72
+        elif phos > 50: 
+            phos = 90
+        elif phos > 60:
+            phos = 108
+        elif phos > 70:
+            phos = 126
+        elif phos > 80:
+            phos = 144
+        elif phos > 90:
+            phos = 162
+        elif phos > 100:
+            phos = 180
+            
+        if pot > 10:
+            pot = 6
+        elif pot > 20:
+            pot = 12
+        elif pot > 30:
+            pot = 18
+        elif pot > 40:
+            pot = 24
+        elif phos > 50: 
+            phos = 30
+        elif phos > 60:
+            phos = 36
+        elif phos > 70:
+            phos = 42
+        elif phos > 80:
+            phos = 48
+        elif phos > 90:
+            phos = 54
+        elif phos > 100:
+            phos = 60
+        
+        
         response['needed_nutrients'] = {
-            'N': 197 - int(features[0]),
-            'P': 70 - int(features[1]),
-            'K': 180 - int(features[2])
+            'Urea': nit,
+            'TSP': phos,
+            'MOP': pot
         }
     elif prediction == 'rice':
+        nit = 175 - int(features[0])
+        phos = 87 - int(features[1])
+        pot =  178 - int(features[2])
+        
+        if nit > 10:
+            nit = 7.8
+        elif nit > 20:
+            nit = 15.6
+        elif nit > 30:
+            nit = 23.4
+        elif nit > 40:
+            nit = 31.2
+        elif nit > 50:
+            nit = 39
+        elif nit > 60:
+            nit = 46.8
+        elif nit > 70:
+            nit = 54.6
+        elif nit > 80:
+            nit = 62.4
+        elif nit > 90:
+            nit = 70.2
+        elif nit > 100:
+            nit = 78
+            
+        if phos > 10:
+            phos = 18
+        elif phos > 20:
+            phos = 36
+        elif phos > 30:
+            phos = 54
+        elif phos > 40:
+            phos = 72
+        elif phos > 50: 
+            phos = 90
+        elif phos > 60:
+            phos = 108
+        elif phos > 70:
+            phos = 126
+        elif phos > 80:
+            phos = 144
+        elif phos > 90:
+            phos = 162
+        elif phos > 100:
+            phos = 180
+            
+        if pot > 10:
+            pot = 6
+        elif pot > 20:
+            pot = 12
+        elif pot > 30:
+            pot = 18
+        elif pot > 40:
+            pot = 24
+        elif phos > 50: 
+            phos = 30
+        elif phos > 60:
+            phos = 36
+        elif phos > 70:
+            phos = 42
+        elif phos > 80:
+            phos = 48
+        elif phos > 90:
+            phos = 54
+        elif phos > 100:
+            phos = 60
         response['needed_nutrients'] = {
-            'N': 175 - int(features[0]),
-            'P': 87 - int(features[1]),
-            'K': 178 - int(features[2])
+            'Urea': nit,
+            'TSP': phos,
+            'MOP': pot
         }
 
     return jsonify(response)
 
+@app.route('/sensordata', methods=['POST'])
+def send_to_supabase():
+    try:
+        data = request.get_json()
+
+        # Check if all required fields are present in the request
+        required_fields = ['nitrogen', 'phosphorus', 'potassium', 'conductivity', 'soilMoisture']
+        if not all(field in data for field in required_fields):
+            return jsonify({'error': 'Missing required data'}), 400
+
+        # Prepare the data to send to Supabase
+        payload = {
+            'nitrogen': data['nitrogen'],
+            'phosphorus': data['phosphorus'],
+            'potassium': data['potassium'],
+            'conductivity': data['conductivity'],
+            'soilMoisture': data['soilMoisture']
+        }
+
+        # Send the data to Supabase
+        response = supabase.table('sensor_data').insert([payload]).execute()
+
+        # ✅ Use attributes, not .get()
+        if response.data:
+            return jsonify({'message': 'Data sent successfully!', 'data': response.data}), 201
+        elif response.error:
+            return jsonify({'error': 'Failed to send data', 'details': str(response.error)}), 500
+        else:
+            return jsonify({'error': 'Unknown error occurred'}), 500
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':
