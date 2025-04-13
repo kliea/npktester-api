@@ -1,38 +1,22 @@
-# app.py
 import os
+import requests
 from flask import Flask, request, jsonify # type: ignore
 import joblib # type: ignore
 from flask_cors import CORS # type: ignore
 from dotenv import load_dotenv # type: ignore
-from supabase import create_client, Client # type: ignore
+from time import time
 
-
-# Load environment variables from a .env file
+# Load environment variables
 load_dotenv()
-
-# Fetch the Supabase URL, API key, and DATABASE_URL from environment variables
-url = os.getenv("REACT_APP_SUPABASE_URL")
-key = os.getenv("REACT_APP_SUPABASE_ANON_KEY")
 DATABASE_URL = os.getenv("DATABASE_URL")
-    
-# Ensure the variables are set
-if not url or not key:
-    raise ValueError("Supabase URL or key is not set in environment variables.")
-if not DATABASE_URL:
-    raise ValueError("Database URL is not set in environment variables.")
+FIREBASE_SECRET = os.getenv("FIREBASE_SECRET")
+USER_ID = "e6piaHKYkFhkTMsXmVbgc30wQEv1"
 
-# Create Supabase client (you can still use Supabase for other features)
-supabase: Client = create_client(url, key)
-
-# Export the Supabase client for use in other parts of your application
-def get_supabase_client():
-    return supabase
-
+if not DATABASE_URL or not FIREBASE_SECRET:
+    raise ValueError("DATABASE_URL or FIREBASE_SECRET not set in .env")
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
-
-supabase = get_supabase_client()
+CORS(app)
 
 # Load the model
 model = joblib.load('crop_recommendation_model.pkl')
@@ -42,14 +26,32 @@ def index():
     return "Crop Recommendation API is running."
 
 @app.route('/sensordata', methods=['GET'])
-def get_sensor_data():
-    # Fetch the sensor data from PostgreSQL
-    response = supabase.table('sensor_data') \
-        .select('id, nitrogen, phosphorus, potassium, soilMoisture, created_at') \
-        .order('created_at', desc=True) \
-        .limit(1) \
-        .execute()
-    return jsonify(response.data)
+def get_all_sensor_data():
+    try:
+        url = f"{DATABASE_URL}/UsersData/{USER_ID}/readings.json"
+        params = {
+            "auth": FIREBASE_SECRET,
+            "orderBy": '"$key"',
+            "limitToLast": 1
+        }
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        
+        data = response.json()
+        if not data:
+            return jsonify({"error": "No sensor data found."}), 404
+        
+        # Extract the latest entry
+        latest_timestamp = list(data.keys())[0]
+        latest_data = data[latest_timestamp]
+        
+        return jsonify(latest_data)
+
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -208,42 +210,7 @@ def predict():
             'TSP': phos,
             'MOP': pot
         }
-
     return jsonify(response)
-
-@app.route('/sensordata', methods=['POST'])
-def send_to_supabase():
-    try:
-        data = request.get_json()
-
-        # Check if all required fields are present in the request
-        required_fields = ['nitrogen', 'phosphorus', 'potassium', 'conductivity', 'soilMoisture']
-        if not all(field in data for field in required_fields):
-            return jsonify({'error': 'Missing required data'}), 400
-
-        # Prepare the data to send to Supabase
-        payload = {
-            'nitrogen': data['nitrogen'],
-            'phosphorus': data['phosphorus'],
-            'potassium': data['potassium'],
-            'conductivity': data['conductivity'],
-            'soilMoisture': data['soilMoisture']
-        }
-
-        # Send the data to Supabase
-        response = supabase.table('sensor_data').insert([payload]).execute()
-
-        # ✅ Use attributes, not .get()
-        if response.data:
-            return jsonify({'message': 'Data sent successfully!', 'data': response.data}), 201
-        elif response.error:
-            return jsonify({'error': 'Failed to send data', 'details': str(response.error)}), 500
-        else:
-            return jsonify({'error': 'Unknown error occurred'}), 500
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
