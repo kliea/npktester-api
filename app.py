@@ -119,18 +119,18 @@ def predict():
             pot = 18
         elif pot > 40:
             pot = 24
-        elif phos > 50: 
-            phos = 30
-        elif phos > 60:
-            phos = 36
-        elif phos > 70:
-            phos = 42
-        elif phos > 80:
-            phos = 48
-        elif phos > 90:
-            phos = 54
-        elif phos > 100:
-            phos = 60
+        elif pot > 50: 
+            pot = 30
+        elif pot > 60:
+            pot = 36
+        elif pot > 70:
+            pot = 42
+        elif pot > 80:
+            pot = 48
+        elif pot > 90:
+            pot = 54
+        elif pot > 100:
+            pot = 60
         
         
         response['needed_nutrients'] = {
@@ -193,18 +193,18 @@ def predict():
             pot = 18
         elif pot > 40:
             pot = 24
-        elif phos > 50: 
-            phos = 30
-        elif phos > 60:
-            phos = 36
-        elif phos > 70:
-            phos = 42
-        elif phos > 80:
-            phos = 48
-        elif phos > 90:
-            phos = 54
-        elif phos > 100:
-            phos = 60
+        elif pot > 50: 
+            pot = 30
+        elif pot > 60:
+            pot = 36
+        elif pot > 70:
+            pot = 42
+        elif pot > 80:
+            pot = 48
+        elif pot > 90:
+            pot = 54
+        elif pot > 100:
+            pot = 60
         response['needed_nutrients'] = {
             'Urea': nit,
             'TSP': phos,
